@@ -1,0 +1,96 @@
+Converter hz → bpm 
+
+const int microphonePin = A0; // Pino analógico onde o sinal do microfone será lido
+const int ledPin = 13;        // Pino digital para um LED (apenas para indicar atividade)
+
+unsigned long previousMillis = 0;  // Variável para armazenar o tempo do último pulso
+const int interval = 60000;        // Intervalo de tempo para calcular BPM em milissegundos (60 segundos = 60000 milissegundos)
+
+void setup() {
+  Serial.begin(9600);       // Inicializa a comunicação serial
+  pinMode(microphonePin, INPUT); // Define o pino do microfone como entrada
+  pinMode(ledPin, OUTPUT);   // Define o pino do LED como saída
+}
+
+void loop() {
+  // Leitura do sinal do microfone
+  int sensorValue = analogRead(microphonePin);
+
+  // Se o valor lido for maior que um limite, considera-se como batida
+  if (sensorValue > 500) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+      previousMillis = currentMillis;
+
+      // Ativa o LED para indicar atividade
+      digitalWrite(ledPin, HIGH);
+      delay(50);
+      digitalWrite(ledPin, LOW);
+
+      // Calcula o BPM (batidas por minuto)
+      float bpm = 60000.0 / interval;
+      
+      // Envia os dados para o monitor serial
+      Serial.print("BPM: ");
+      Serial.println(bpm);
+    }
+  }
+}
+
+
+________________________________________________________________________
+
+
+const int microphonePin = A0; // Pino analógico onde o sinal do microfone será lido
+const int ledPin = 13;        // Pino digital para um LED (apenas para indicar atividade)
+
+unsigned long previousMillis = 0;  // Variável para armazenar o tempo do último pulso
+const int interval = 60000;        // Intervalo de tempo para calcular BPM em milissegundos (60 segundos = 60000 milissegundos)
+
+int threshold = 500; // Limiar para detecção de picos
+int lastValue = 0;   // Último valor lido do microfone
+bool risingEdge = false; // Flag para indicar borda de subida
+
+void setup() {
+  Serial.begin(9600);       // Inicializa a comunicação serial
+  pinMode(microphonePin, INPUT); // Define o pino do microfone como entrada
+  pinMode(ledPin, OUTPUT);   // Define o pino do LED como saída
+}
+
+void loop() {
+  // Leitura do sinal do microfone
+  int sensorValue = analogRead(microphonePin);
+
+  // Detecta a borda de subida
+  if (sensorValue > threshold && lastValue <= threshold) {
+    risingEdge = true;
+  }
+
+  // Detecta a borda de descida
+  if (sensorValue <= threshold && lastValue > threshold && risingEdge) {
+    // Calcula o tempo decorrido desde o último pico
+    unsigned long currentMillis = millis();
+    unsigned long peakInterval = currentMillis - previousMillis;
+    
+    // Atualiza o tempo do último pico
+    previousMillis = currentMillis;
+
+    // Ativa o LED para indicar atividade
+    digitalWrite(ledPin, HIGH);
+    delay(50);
+    digitalWrite(ledPin, LOW);
+
+    // Calcula o BPM (batimentos por minuto)
+    float bpm = 60000.0 / peakInterval;
+    
+    // Envia os dados para o monitor serial
+    Serial.print("BPM: ");
+    Serial.println(bpm);
+
+    // Reinicia a detecção de borda de subida
+    risingEdge = false;
+  }
+
+  // Atualiza o último valor lido
+  lastValue = sensorValue;
+}
